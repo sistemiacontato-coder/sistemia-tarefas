@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 interface SideNavBarProps {
-  activePage: 'dashboard' | 'projects' | 'clients' | 'reports';
+  activePage: 'dashboard' | 'projects' | 'clients' | 'reports' | 'settings';
 }
 
 export const SideNavBar: React.FC<SideNavBarProps> = ({ activePage }) => {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
-  });
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
@@ -21,21 +18,13 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({ activePage }) => {
     });
   };
 
-  // Atualiza a classe no body sempre que o tema muda
+  // Aplica o tema salvo ao montar
   useEffect(() => {
-    if (theme === 'light') {
-      document.body.classList.add('light-theme');
-    } else {
-      document.body.classList.remove('light-theme');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    const saved = localStorage.getItem('theme');
+    document.body.classList.toggle('light-theme', saved === 'light');
+  }, []);
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
-  const getLinkStyle = (page: 'dashboard' | 'projects' | 'clients' | 'reports') => {
+  const getLinkStyle = (page: 'dashboard' | 'projects' | 'clients' | 'reports' | 'settings') => {
     const isActive = activePage === page;
     return {
       display: 'flex',
@@ -124,6 +113,14 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({ activePage }) => {
           <span className="material-symbols-outlined" style={{ fontSize: '18px', flexShrink: 0 }}>analytics</span>
           {!collapsed && 'Relatórios'}
         </Link>
+
+        {/* Separador */}
+        <div style={{ borderTop: '1px solid var(--outline)', margin: '8px 4px' }} />
+
+        <Link to="/settings" style={getLinkStyle('settings')} title={collapsed ? 'Configurações' : undefined}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', flexShrink: 0 }}>settings</span>
+          {!collapsed && 'Configurações'}
+        </Link>
       </nav>
 
       {/* Rodapé */}
@@ -132,20 +129,10 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({ activePage }) => {
           SN
         </div>
         {!collapsed && (
-          <>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-on-surface)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Saymon Nunes</p>
-              <p style={{ fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Workspace Master</p>
-            </div>
-            <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
-              style={iconBtn}
-              onMouseOver={e => (e.currentTarget.style.color = 'var(--text-on-surface)')}
-              onMouseOut={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-              </span>
-            </button>
-          </>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-on-surface)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Saymon Nunes</p>
+            <p style={{ fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Workspace Master</p>
+          </div>
         )}
       </div>
     </aside>

@@ -4,6 +4,7 @@ import { ClientPortal } from './pages/ClientPortal';
 import { Projects } from './pages/Projects';
 import { Clients } from './pages/Clients';
 import { Reports } from './pages/Reports';
+import { Settings } from './pages/Settings';
 
 function App() {
   return (
@@ -21,6 +22,9 @@ function App() {
         {/* Rota Privada: Relatórios */}
         <Route path="/reports" element={<Reports />} />
         
+        {/* Rota Privada: Configurações */}
+        <Route path="/settings" element={<Settings />} />
+
         {/* Rota Pública: Portal do Cliente */}
         <Route path="/share/:token" element={<ClientPortal />} />
         
