@@ -634,6 +634,7 @@ export const Projects: React.FC = () => {
                 <React.Fragment key={task.id}>
                   <div
                     onClick={() => setExpandedProject(isExpanded ? null : task.id)}
+                    onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setMenuOpenId(menuOpenId === task.id ? null : task.id); }}
                     style={{ display: 'grid', gridTemplateColumns: '32px 1fr 130px 120px 150px 170px 36px', padding: '13px 16px', alignItems: 'center', borderBottom: (isExpanded || !isLast) ? '1px solid var(--outline)' : 'none', background: isExpanded ? 'var(--surface-hover)' : 'var(--surface)', cursor: 'pointer', transition: 'background 0.12s', userSelect: 'none', opacity: isArchived ? 0.65 : 1 }}
                     onMouseOver={e => { if (!isExpanded) e.currentTarget.style.background = 'var(--surface-hover)'; }}
                     onMouseOut={e => { if (!isExpanded) e.currentTarget.style.background = 'var(--surface)'; }}
