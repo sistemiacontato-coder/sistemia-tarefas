@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabaseRealClient, isRealSupabaseConfigured } from '../supabaseClient';
 
 interface SideNavBarProps {
   activePage: 'dashboard' | 'projects' | 'clients' | 'reports' | 'settings';
@@ -9,6 +10,12 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({ activePage }) => {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
+
+  const handleLogout = async () => {
+    if (isRealSupabaseConfigured && supabaseRealClient) {
+      await supabaseRealClient.auth.signOut();
+    }
+  };
 
   const toggleCollapsed = () => {
     setCollapsed(prev => {
@@ -133,6 +140,17 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({ activePage }) => {
             <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-on-surface)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Saymon Nunes</p>
             <p style={{ fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Workspace Master</p>
           </div>
+        )}
+        {isRealSupabaseConfigured && (
+          <button
+            onClick={handleLogout}
+            title="Sair"
+            style={{ ...iconBtn, flexShrink: 0, marginLeft: collapsed ? '0' : 'auto' }}
+            onMouseOver={e => (e.currentTarget.style.color = '#ef4444')}
+            onMouseOut={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+          </button>
         )}
       </div>
     </aside>
