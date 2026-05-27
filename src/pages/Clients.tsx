@@ -41,6 +41,7 @@ export const Clients: React.FC = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [archivedClients, setArchivedClients] = useState<Set<string>>(loadArchived);
   const [clientMenuOpen, setClientMenuOpen] = useState<string | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; client: { id: string; name: string; shareToken: string } } | null>(null);
   const [editingClientProfile, setEditingClientProfile] = useState<{ id: string; name: string } | null>(null);
   const [deletingClient, setDeletingClient] = useState<{ id: string; name: string } | null>(null);
   const [creatingClient, setCreatingClient] = useState(false);
@@ -539,6 +540,7 @@ export const Clients: React.FC = () => {
               return (
                 <React.Fragment key={client.id}>
                   <div onClick={() => setExpandedClient(isExpanded ? null : client.id)}
+                    onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setCtxMenu({ x: e.clientX, y: e.clientY, client }); }}
                     style={{ display: 'grid', gridTemplateColumns: '32px 1fr 180px 36px', padding: '13px 16px', alignItems: 'center', borderBottom: (isExpanded || !isLast) ? '1px solid var(--outline)' : 'none', background: isExpanded ? 'var(--surface-hover)' : 'var(--surface)', cursor: 'pointer', transition: 'background 0.12s', userSelect: 'none', opacity: isArchived ? 0.65 : 1 }}
                     onMouseOver={e => { if (!isExpanded) e.currentTarget.style.background = 'var(--surface-hover)'; }}
                     onMouseOut={e => { if (!isExpanded) e.currentTarget.style.background = 'var(--surface)'; }}
@@ -576,7 +578,8 @@ export const Clients: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {visibleClients.map(client => (
               <div key={client.id} className="glass-card"
-                style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', border: '1px solid var(--outline)', opacity: archivedClients.has(client.name) ? 0.65 : 1 }}>
+                style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', border: '1px solid var(--outline)', opacity: archivedClients.has(client.name) ? 0.65 : 1 }}
+                onContextMenu={e => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, client }); }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '20px', color: archivedClients.has(client.name) ? 'var(--text-muted)' : 'var(--primary)' }}>
                     {archivedClients.has(client.name) ? 'archive' : 'business'}
@@ -626,6 +629,35 @@ export const Clients: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Menu de contexto (botão direito) */}
+      {ctxMenu && (() => {
+        const menuWidth = 170;
+        const menuHeight = 140;
+        const isArch = archivedClients.has(ctxMenu.client.name);
+        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--text-on-surface)', textAlign: 'left', whiteSpace: 'nowrap' };
+        let left = ctxMenu.x;
+        let top = ctxMenu.y;
+        if (left + menuWidth > window.innerWidth) left = ctxMenu.x - menuWidth;
+        if (top + menuHeight > window.innerHeight) top = ctxMenu.y - menuHeight;
+        return (
+          <>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setCtxMenu(null)} onContextMenu={e => { e.preventDefault(); setCtxMenu(null); }} />
+            <div style={{ position: 'fixed', left, top, zIndex: 50, background: 'var(--surface-high)', border: '1px solid var(--outline-variant)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', minWidth: '160px', overflow: 'hidden', padding: '4px 0' }} onClick={e => e.stopPropagation()}>
+              <button style={itemStyle} onMouseOver={e => e.currentTarget.style.background = 'var(--surface-hover)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'} onClick={() => { setEditingClientProfile(ctxMenu.client); setCtxMenu(null); }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--primary)' }}>edit</span>Editar cadastro
+              </button>
+              <button style={itemStyle} onMouseOver={e => e.currentTarget.style.background = 'var(--surface-hover)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'} onClick={() => { toggleArchive(ctxMenu.client.name); setCtxMenu(null); }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--text-muted)' }}>{isArch ? 'unarchive' : 'archive'}</span>{isArch ? 'Desarquivar' : 'Arquivar'}
+              </button>
+              <div style={{ borderTop: '1px solid var(--outline)', margin: '4px 0' }} />
+              <button style={{ ...itemStyle, color: '#ef4444' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'} onClick={() => { setDeletingClient(ctxMenu.client); setCtxMenu(null); }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>Excluir
+              </button>
+            </div>
+          </>
+        );
+      })()}
 
     </div>
   );

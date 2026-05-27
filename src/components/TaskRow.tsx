@@ -931,6 +931,12 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       onMouseOut={(e) => {
         e.currentTarget.style.backgroundColor = 'var(--surface)';
       }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setThreeDotsRect(new DOMRect(e.clientX, e.clientY, 0, 0));
+        setShowThreeDotsMenu(true);
+      }}
     >
       {/* Nome da Tarefa & Expansor discretos com Ações Inline no Hover */}
       <td style={{
