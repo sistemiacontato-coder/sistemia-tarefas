@@ -706,15 +706,14 @@ export const supabaseService = {
     
     if (active) return active.share_token;
     
-    const clientSlug = clientName.replace(/\s+/g, '_');
     const newToken: ClientShare = {
-      share_token: `share-${clientSlug}-${Date.now()}`,
+      share_token: crypto.randomUUID(),
       client_name: clientName,
       owner_id: MOCK_USER_ID,
       is_active: true,
       created_at: new Date().toISOString()
     };
-    
+
     shares.push(newToken);
     setLocalStorageShares(shares);
     return newToken.share_token;
@@ -758,15 +757,14 @@ export const supabaseService = {
       }
     });
 
-    const clientSlug = clientName.replace(/\s+/g, '_');
     const newToken: ClientShare = {
-      share_token: `share-${clientSlug}-${Date.now()}`,
+      share_token: crypto.randomUUID(),
       client_name: clientName,
       owner_id: MOCK_USER_ID,
       is_active: true,
       created_at: new Date().toISOString()
     };
-    
+
     shares.push(newToken);
     setLocalStorageShares(shares);
     return newToken.share_token;

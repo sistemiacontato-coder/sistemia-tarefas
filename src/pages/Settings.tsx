@@ -157,7 +157,7 @@ export const Settings: React.FC = () => {
     (async () => {
       try {
         const r = await fetch(
-          `${SUPA_URL}/rest/v1/sia_tarefas_notif_settings?id=eq.1&select=*`,
+          `${SUPA_URL}/rest/v1/sia_tarefas_notif_settings?id=eq.1&select=id,evolution_url,evolution_instance,whatsapp_number,notify_expiring,expiring_days_before,notify_due_today,notify_overdue,connected`,
           { headers: supaHdr }
         );
         if (!r.ok) { setTableReady(false); return; }
