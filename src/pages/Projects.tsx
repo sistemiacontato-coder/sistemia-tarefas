@@ -450,8 +450,7 @@ export const Projects: React.FC = () => {
             {split.entradaStatus === 'recebido' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '44px' }}>
                 <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Data recebimento:</span>
-                <input type="date" value={split.entradaDate} onChange={e => updateImplSplit(task.id, { entradaDate: e.target.value })}
-                  style={{ fontSize: '11px', border: '1px solid var(--outline-variant)', borderRadius: 'var(--radius-sm)', padding: '2px 6px', background: 'var(--surface)', color: 'var(--text-on-surface)', outline: 'none' }} />
+                <DateField value={split.entradaDate} onChange={v => updateImplSplit(task.id, { entradaDate: v })} />
               </div>
             )}
             <div style={{ borderTop: '1px solid var(--outline)' }} />
@@ -463,8 +462,7 @@ export const Projects: React.FC = () => {
             {split.entregaStatus === 'recebido' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '44px' }}>
                 <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Data recebimento:</span>
-                <input type="date" value={split.entregaDate} onChange={e => updateImplSplit(task.id, { entregaDate: e.target.value })}
-                  style={{ fontSize: '11px', border: '1px solid var(--outline-variant)', borderRadius: 'var(--radius-sm)', padding: '2px 6px', background: 'var(--surface)', color: 'var(--text-on-surface)', outline: 'none' }} />
+                <DateField value={split.entregaDate} onChange={v => updateImplSplit(task.id, { entregaDate: v })} />
               </div>
             )}
           </div>
