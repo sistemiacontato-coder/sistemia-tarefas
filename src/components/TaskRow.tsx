@@ -52,9 +52,10 @@ interface TaskRowProps {
   columnOrder?: string[];
   isSelected?: boolean;
   onToggleSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
-  onDragStart?: (taskId: string, clientX: number) => void;
-  onDragOver?: (taskId: string) => void;
-  onDrop?: (draggedId: string, targetId: string, clientX: number) => void;
+  onDragStart?: (taskId: string) => void;
+  onDragOver?: (taskId: string, relativeX: number) => void;
+  onDrop?: (draggedId: string, targetId: string, relativeX: number) => void;
+  dragOverRelativeX?: number;
   onDragEnd?: () => void;
   draggedTaskId?: string | null;
   dragOverTaskId?: string | null;
@@ -108,6 +109,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   onDragEnd,
   draggedTaskId,
   dragOverTaskId,
+  dragOverRelativeX = 0,
   activeThreeDotsTaskId = null,
   setActiveThreeDotsTaskId,
   onFilterByTag,
@@ -901,30 +903,39 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       draggable={!isReadOnly}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', task.id);
-        onDragStart?.(task.id, e.clientX);
+        onDragStart?.(task.id);
       }}
       onDragOver={(e) => {
         e.preventDefault();
-        onDragOver?.(task.id);
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        onDragOver?.(task.id, e.clientX - rect.left);
       }}
       onDrop={(e) => {
         e.preventDefault();
         const draggedId = e.dataTransfer.getData('text/plain');
-        onDrop?.(draggedId, task.id, e.clientX);
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        onDrop?.(draggedId, task.id, e.clientX - rect.left);
       }}
       onDragEnd={() => {
         onDragEnd?.();
       }}
-      style={{
-        borderBottom: '1px solid var(--outline)',
-        borderTop: draggedTaskId && dragOverTaskId === task.id && draggedTaskId !== task.id ? '2px solid var(--primary)' : 'none',
-        background: 'var(--surface)',
-        height: '32px',
-        opacity: draggedTaskId === task.id ? 0.4 : 1,
-        position: statusDropdownSource !== null ? 'relative' : undefined,
-        zIndex: statusDropdownSource !== null ? 999 : undefined,
-        transition: 'all 0.15s ease'
-      }}
+      style={(() => {
+        const isOver = !!draggedTaskId && dragOverTaskId === task.id && draggedTaskId !== task.id;
+        const subtaskThreshold = (task.level || 0) * 22 + 80;
+        const isSubtaskIntent = isOver && dragOverRelativeX > subtaskThreshold;
+        return {
+          borderBottom: '1px solid var(--outline)',
+          borderTop: isOver && !isSubtaskIntent ? '2px solid var(--primary)' : 'none',
+          outline: isSubtaskIntent ? '2px solid #22c55e' : 'none',
+          outlineOffset: '-2px',
+          background: isSubtaskIntent ? 'rgba(34,197,94,0.07)' : 'var(--surface)',
+          height: '32px',
+          opacity: draggedTaskId === task.id ? 0.4 : 1,
+          position: statusDropdownSource !== null ? 'relative' : undefined,
+          zIndex: statusDropdownSource !== null ? 999 : undefined,
+          transition: 'all 0.15s ease'
+        };
+      })()}
       onMouseOver={(e) => {
         e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
       }}

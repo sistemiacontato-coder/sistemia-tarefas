@@ -8,8 +8,8 @@ export interface Task {
   contract_value: number;
   status: TaskStatus;
   priority?: TaskPriority;
-  start_date: string;
-  end_date: string;
+  start_date: string | null;
+  end_date: string | null;
   description: string;
   owner_id: string;
   created_at: string;

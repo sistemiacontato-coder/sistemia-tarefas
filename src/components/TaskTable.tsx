@@ -257,7 +257,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   // Estados para reordenamento Drag and Drop das tarefas
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
-  const dragStartXRef = useRef<number>(0);
+  const [dragOverRelativeX, setDragOverRelativeX] = useState<number>(0);
 
   const getOrderedColumns = () => {
     const defaultKeys = ['progress', 'status', 'startDate', 'endDate', 'financialValue', 'priority'];
@@ -931,9 +931,10 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     }
   };
 
-  const handleDropTask = async (draggedId: string, targetId: string, dropClientX: number) => {
+  const handleDropTask = async (draggedId: string, targetId: string, relativeX: number) => {
     setDraggedTaskId(null);
     setDragOverTaskId(null);
+    setDragOverRelativeX(0);
 
     if (draggedId === targetId) return;
 
@@ -941,32 +942,24 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     const targetTask = tasks.find(t => t.id === targetId);
     if (!draggedTask || !targetTask) return;
 
-    const deltaX = dropClientX - dragStartXRef.current;
-    const INDENT_THRESHOLD = 40;
+    // Limiar baseado no nível da tarefa alvo: quanto mais aninhada, maior o limiar
+    const subtaskThreshold = (targetTask.level || 0) * 22 + 80;
 
     try {
-      if (deltaX > INDENT_THRESHOLD) {
-        // Arrastou para a DIREITA → tornar subtarefa da tarefa imediatamente acima do alvo na lista visível
-        const currentVisible = tasks.filter(isTaskVisible);
-        const targetIdx = currentVisible.findIndex(t => t.id === targetId);
-        const taskAbove = targetIdx > 0 ? currentVisible[targetIdx - 1] : null;
-        const newParentId = taskAbove ? taskAbove.id : targetTask.parent_id;
-        if (newParentId !== draggedTask.parent_id || newParentId !== draggedTask.id) {
-          if (onUpdateTaskField && newParentId !== draggedId) {
-            await onUpdateTaskField(draggedId, { parent_id: newParentId });
-          }
+      if (relativeX > subtaskThreshold) {
+        // Soltar à DIREITA do limiar → virar subtarefa da tarefa alvo
+        if (onUpdateTaskField && draggedId !== targetId) {
+          await onUpdateTaskField(draggedId, { parent_id: targetTask.id });
         }
-      } else if (deltaX < -INDENT_THRESHOLD) {
-        // Arrastou para a ESQUERDA → promover um nível (pai do pai, ou raiz)
+      } else if (relativeX < 30 && draggedTask.parent_id !== null) {
+        // Soltar muito à ESQUERDA → promover um nível
         const currentParent = tasks.find(t => t.id === draggedTask.parent_id);
         const newParentId = currentParent ? currentParent.parent_id : null;
-        if (newParentId !== draggedTask.parent_id) {
-          if (onUpdateTaskField) {
-            await onUpdateTaskField(draggedId, { parent_id: newParentId });
-          }
+        if (onUpdateTaskField) {
+          await onUpdateTaskField(draggedId, { parent_id: newParentId });
         }
       } else {
-        // Movimento horizontal neutro → reordenar no mesmo nível
+        // Zona neutra → reordenar no mesmo nível da tarefa alvo
         if (draggedTask.parent_id !== targetTask.parent_id) {
           if (onUpdateTaskField) {
             await onUpdateTaskField(draggedId, { parent_id: targetTask.parent_id });
@@ -974,7 +967,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         }
       }
 
-      // Reordena no localStorage
+      // Reordena posição no localStorage
       const currentOrderIds = tasks.map(t => t.id);
       const filteredOrderIds = currentOrderIds.filter(id => id !== draggedId);
       const targetIdx = filteredOrderIds.indexOf(targetId);
@@ -2838,10 +2831,11 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       onUpdateTaskField={onUpdateTaskField}
                       isSelected={selectedTaskIds.includes(task.id)}
                       onToggleSelect={handleToggleSelect}
-                      onDragStart={(id, clientX) => { setDraggedTaskId(id); dragStartXRef.current = clientX; }}
-                      onDragOver={(id) => setDragOverTaskId(id)}
+                      onDragStart={(id) => setDraggedTaskId(id)}
+                      onDragOver={(id, relX) => { setDragOverTaskId(id); setDragOverRelativeX(relX); }}
                       onDrop={handleDropTask}
-                      onDragEnd={() => { setDraggedTaskId(null); setDragOverTaskId(null); }}
+                      onDragEnd={() => { setDraggedTaskId(null); setDragOverTaskId(null); setDragOverRelativeX(0); }}
+                      dragOverRelativeX={dragOverRelativeX}
                       draggedTaskId={draggedTaskId}
                       dragOverTaskId={dragOverTaskId}
                       activeThreeDotsTaskId={activeThreeDotsTaskId}

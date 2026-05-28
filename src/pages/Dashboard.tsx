@@ -138,8 +138,8 @@ export const Dashboard: React.FC = () => {
         client_name: targetClientName,
         contract_value: 0,
         status: 'A Fazer' as TaskStatus,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        start_date: null,
+        end_date: null,
         owner_id: 'default_owner',
         level: newLevel
       };
@@ -186,8 +186,8 @@ export const Dashboard: React.FC = () => {
         client_name: clientName,
         contract_value: 0,
         status: 'A Fazer' as TaskStatus,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        start_date: null,
+        end_date: null,
         owner_id: 'default_owner',
         level: newLevel
       };
