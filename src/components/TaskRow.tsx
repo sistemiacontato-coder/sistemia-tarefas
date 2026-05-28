@@ -52,9 +52,9 @@ interface TaskRowProps {
   columnOrder?: string[];
   isSelected?: boolean;
   onToggleSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
-  onDragStart?: (taskId: string) => void;
+  onDragStart?: (taskId: string, clientX: number) => void;
   onDragOver?: (taskId: string) => void;
-  onDrop?: (draggedId: string, targetId: string) => void;
+  onDrop?: (draggedId: string, targetId: string, clientX: number) => void;
   onDragEnd?: () => void;
   draggedTaskId?: string | null;
   dragOverTaskId?: string | null;
@@ -898,10 +898,10 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   return (
     <tr
       className="task-row transition-all-custom"
-      draggable={!isReadOnly && isRowDraggable}
+      draggable={!isReadOnly}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', task.id);
-        onDragStart?.(task.id);
+        onDragStart?.(task.id, e.clientX);
       }}
       onDragOver={(e) => {
         e.preventDefault();
@@ -910,7 +910,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       onDrop={(e) => {
         e.preventDefault();
         const draggedId = e.dataTransfer.getData('text/plain');
-        onDrop?.(draggedId, task.id);
+        onDrop?.(draggedId, task.id, e.clientX);
       }}
       onDragEnd={() => {
         onDragEnd?.();
