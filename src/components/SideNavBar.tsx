@@ -104,9 +104,9 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({ activePage }) => {
 
       {/* Menu Principal */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
-        <Link to="/" style={getLinkStyle('dashboard')} title={collapsed ? 'Dashboard' : undefined}>
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', flexShrink: 0 }}>dashboard</span>
-          {!collapsed && 'Dashboard'}
+        <Link to="/" style={getLinkStyle('dashboard')} title={collapsed ? 'Tarefas' : undefined}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', flexShrink: 0 }}>task_alt</span>
+          {!collapsed && 'Tarefas'}
         </Link>
         <Link to="/projects" style={getLinkStyle('projects')} title={collapsed ? 'Projetos' : undefined}>
           <span className="material-symbols-outlined" style={{ fontSize: '18px', flexShrink: 0 }}>folder_open</span>
