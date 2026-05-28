@@ -129,10 +129,98 @@ const sectionTitle = (icon: string, label: string) => (
   </div>
 );
 
+interface CustomStatus { id: string; label: string; category: string; color: string; icon: string; }
+interface CustomField { key: string; label: string; optionColors?: Record<string, string>; bgColor?: string; }
+
 export const Settings: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem('theme') as Theme) || 'dark'
   );
+
+  // ── Personalização ──
+  const [customStatuses, setCustomStatuses] = useState<CustomStatus[]>(() => {
+    try { return JSON.parse(localStorage.getItem('custom_statuses_list') || '[]'); } catch { return []; }
+  });
+  const [customFields, setCustomFields] = useState<CustomField[]>(() => {
+    try { return JSON.parse(localStorage.getItem('custom_fields_list') || '[]'); } catch { return []; }
+  });
+  const [knownClients, setKnownClients] = useState<string[]>([]);
+  const [renamingClient, setRenamingClient] = useState<string | null>(null);
+  const [newClientName, setNewClientName] = useState('');
+  const [clientSaveMsg, setClientSaveMsg] = useState('');
+  const [statusSaveMsg, setStatusSaveMsg] = useState('');
+
+  useEffect(() => {
+    // Busca clientes únicos do Supabase
+    const fetchClients = async () => {
+      try {
+        const r = await fetch(`${SUPA_URL}/rest/v1/sia_tarefas_tasks?select=client_name&client_name=not.is.null`, {
+          headers: supaHdr,
+        });
+        if (r.ok) {
+          const data: { client_name: string }[] = await r.json();
+          const unique = [...new Set(data.map(d => d.client_name).filter(Boolean))].sort();
+          setKnownClients(unique);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchClients();
+  }, []);
+
+  const getClientColor = (client: string) => {
+    const field = customFields.find(f => f.key === 'cliente_ecosystem');
+    return field?.optionColors?.[client] || field?.bgColor || '#6366f1';
+  };
+
+  const updateClientColor = (client: string, color: string) => {
+    const updated = customFields.map(f =>
+      f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: color } } : f
+    );
+    setCustomFields(updated);
+    localStorage.setItem('custom_fields_list', JSON.stringify(updated));
+  };
+
+  const renameClient = async (oldName: string, newName: string) => {
+    if (!newName.trim() || newName === oldName) { setRenamingClient(null); return; }
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/sia_tarefas_tasks?client_name=eq.${encodeURIComponent(oldName)}`, {
+        method: 'PATCH',
+        headers: { ...supaHdr, Prefer: 'return=minimal' },
+        body: JSON.stringify({ client_name: newName.trim() }),
+      });
+      if (!r.ok) throw new Error('Erro ao renomear');
+      // Migra cor para o novo nome
+      const field = customFields.find(f => f.key === 'cliente_ecosystem');
+      if (field?.optionColors?.[oldName]) {
+        const newOptColors = { ...(field.optionColors || {}) };
+        newOptColors[newName.trim()] = newOptColors[oldName];
+        delete newOptColors[oldName];
+        const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: newOptColors } : f);
+        setCustomFields(updated);
+        localStorage.setItem('custom_fields_list', JSON.stringify(updated));
+      }
+      setKnownClients(prev => prev.map(c => c === oldName ? newName.trim() : c));
+      setClientSaveMsg('Cliente renomeado!');
+      setTimeout(() => setClientSaveMsg(''), 3000);
+    } catch { setClientSaveMsg('Erro ao renomear.'); setTimeout(() => setClientSaveMsg(''), 3000); }
+    setRenamingClient(null);
+  };
+
+  const updateStatusColor = (id: string, color: string) => {
+    const updated = customStatuses.map(s => s.id === id ? { ...s, color } : s);
+    setCustomStatuses(updated);
+    localStorage.setItem('custom_statuses_list', JSON.stringify(updated));
+    window.dispatchEvent(new Event('customStatusesChanged'));
+  };
+
+  const renameStatus = (id: string, label: string) => {
+    const updated = customStatuses.map(s => s.id === id ? { ...s, label } : s);
+    setCustomStatuses(updated);
+    localStorage.setItem('custom_statuses_list', JSON.stringify(updated));
+    window.dispatchEvent(new Event('customStatusesChanged'));
+    setStatusSaveMsg('Status atualizado!');
+    setTimeout(() => setStatusSaveMsg(''), 2000);
+  };
 
   const [cfg, setCfg] = useState<NotifCfg>(defaultCfg);
   const [tableReady, setTableReady] = useState<boolean | null>(null);
@@ -550,6 +638,95 @@ export const Settings: React.FC = () => {
                 </>
               )}
 
+            </div>
+          </div>
+
+          {/* ── Personalização ── */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--outline)', borderRadius: 'var(--radius-lg)', padding: '24px' }}>
+            {sectionTitle('palette', 'Personalização')}
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>
+              Edite nomes e cores dos clientes e dos status das tarefas.
+            </p>
+
+            {/* Clientes */}
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--text-muted)' }}>group</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-on-surface)' }}>Clientes</span>
+                {clientSaveMsg && <span style={{ fontSize: '11px', color: '#10b981', marginLeft: '8px' }}>{clientSaveMsg}</span>}
+              </div>
+              {knownClients.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Nenhum cliente encontrado nas tarefas.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {knownClients.map(client => (
+                    <div key={client} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--surface-low)', borderRadius: 'var(--radius-md)', border: '1px solid var(--outline)' }}>
+                      {/* Color swatch */}
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }} title="Clique para alterar a cor">
+                        <div style={{ width: 22, height: 22, borderRadius: 6, background: getClientColor(client), border: '2px solid var(--outline)', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+                        <input type="color" value={getClientColor(client)} onChange={(e) => updateClientColor(client, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
+                      </label>
+                      {/* Name / rename */}
+                      {renamingClient === client ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                          <input
+                            autoFocus
+                            type="text"
+                            value={newClientName}
+                            onChange={e => setNewClientName(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') renameClient(client, newClientName); if (e.key === 'Escape') setRenamingClient(null); }}
+                            style={{ ...inputStyle, padding: '4px 8px', fontSize: '12px' }}
+                          />
+                          <button onClick={() => renameClient(client, newClientName)} style={{ background: '#10b981', border: 'none', borderRadius: 4, color: '#fff', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>Salvar</button>
+                          <button onClick={() => setRenamingClient(null)} style={{ background: 'transparent', border: '1px solid var(--outline)', borderRadius: 4, color: 'var(--text-muted)', padding: '4px 8px', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
+                        </div>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: '13px', color: 'var(--text-on-surface)', flex: 1 }}>{client}</span>
+                          <button onClick={() => { setRenamingClient(client); setNewClientName(client); }} title="Renomear" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '2px' }} onMouseOver={e => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Status */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--text-muted)' }}>adjust</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-on-surface)' }}>Status</span>
+                {statusSaveMsg && <span style={{ fontSize: '11px', color: '#10b981', marginLeft: '8px' }}>{statusSaveMsg}</span>}
+              </div>
+              {customStatuses.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Nenhum status configurado.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {customStatuses.map(status => (
+                    <div key={status.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--surface-low)', borderRadius: 'var(--radius-md)', border: '1px solid var(--outline)' }}>
+                      {/* Cor */}
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }} title="Clique para alterar a cor">
+                        <div style={{ width: 22, height: 22, borderRadius: 6, background: status.color, border: '2px solid var(--outline)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#fff' }}>{status.icon}</span>
+                        </div>
+                        <input type="color" value={status.color} onChange={(e) => updateStatusColor(status.id, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
+                      </label>
+                      {/* Label editável inline */}
+                      <input
+                        type="text"
+                        defaultValue={status.label}
+                        onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== status.label) renameStatus(status.id, e.target.value.trim()); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-on-surface)', cursor: 'text' }}
+                      />
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0, fontWeight: 600, textTransform: 'uppercase' }}>{status.category}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
