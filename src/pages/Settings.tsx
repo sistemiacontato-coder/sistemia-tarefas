@@ -132,6 +132,8 @@ const sectionTitle = (icon: string, label: string) => (
 interface CustomStatus { id: string; label: string; category: string; color: string; icon: string; }
 interface CustomField { key: string; label: string; optionColors?: Record<string, string>; bgColor?: string; }
 
+const PALETTE = ['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#6366f1','#8b5cf6','#ec4899','#6b7280'];
+
 export const Settings: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem('theme') as Theme) || 'dark'
@@ -147,6 +149,7 @@ export const Settings: React.FC = () => {
   const [knownClients, setKnownClients] = useState<string[]>([]);
   const [showClientsList, setShowClientsList] = useState(false);
   const [showStatusList, setShowStatusList] = useState(false);
+  const [colorPickerFor, setColorPickerFor] = useState<string | null>(null);
   const [renamingClient, setRenamingClient] = useState<string | null>(null);
   const [newClientName, setNewClientName] = useState('');
   const [renamingStatusId, setRenamingStatusId] = useState<string | null>(null);
@@ -666,10 +669,15 @@ export const Settings: React.FC = () => {
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '8px 0' }}>Nenhum cliente encontrado nas tarefas.</p>
                   ) : knownClients.map(client => (
                     <div key={client} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--surface-low)', borderRadius: 'var(--radius-md)', border: '1px solid var(--outline)' }}>
-                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }} title="Clique para alterar a cor">
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: getClientColor(client), border: '2px solid var(--outline)', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-                        <input type="color" value={getClientColor(client)} onChange={e => updateClientColor(client, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
-                      </label>
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <button onClick={() => setColorPickerFor(colorPickerFor === `c_${client}` ? null : `c_${client}`)} title="Escolher cor" style={{ width: 24, height: 24, borderRadius: 6, background: getClientColor(client), border: '2px solid var(--outline)', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+                        {colorPickerFor === `c_${client}` && (<>
+                          <div onClick={() => setColorPickerFor(null)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+                          <div style={{ position: 'absolute', top: '30px', left: 0, zIndex: 1000, background: 'var(--surface)', border: '1px solid var(--outline)', borderRadius: 10, padding: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.4)', display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
+                            {PALETTE.map(c => <button key={c} onClick={() => { updateClientColor(client, c); setColorPickerFor(null); }} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: getClientColor(client) === c ? '3px solid var(--text-on-surface)' : '2px solid transparent', cursor: 'pointer' }} />)}
+                          </div>
+                        </>)}
+                      </div>
                       {renamingClient === client ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
                           <input autoFocus type="text" value={newClientName} onChange={e => setNewClientName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameClient(client, newClientName); if (e.key === 'Escape') setRenamingClient(null); }} style={{ ...inputStyle, padding: '4px 8px', fontSize: '12px' }} />
@@ -707,12 +715,17 @@ export const Settings: React.FC = () => {
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '8px 0' }}>Nenhum status configurado.</p>
                   ) : customStatuses.map(status => (
                     <div key={status.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--surface-low)', borderRadius: 'var(--radius-md)', border: '1px solid var(--outline)' }}>
-                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }} title="Clique para alterar a cor">
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: status.color, border: '2px solid var(--outline)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#fff' }}>{status.icon}</span>
-                        </div>
-                        <input type="color" value={status.color} onChange={e => updateStatusColor(status.id, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
-                      </label>
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <button onClick={() => setColorPickerFor(colorPickerFor === `s_${status.id}` ? null : `s_${status.id}`)} title="Escolher cor" style={{ width: 24, height: 24, borderRadius: 6, background: status.color, border: '2px solid var(--outline)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#fff', pointerEvents: 'none' }}>{status.icon}</span>
+                        </button>
+                        {colorPickerFor === `s_${status.id}` && (<>
+                          <div onClick={() => setColorPickerFor(null)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+                          <div style={{ position: 'absolute', top: '30px', left: 0, zIndex: 1000, background: 'var(--surface)', border: '1px solid var(--outline)', borderRadius: 10, padding: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.4)', display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
+                            {PALETTE.map(c => <button key={c} onClick={() => { updateStatusColor(status.id, c); setColorPickerFor(null); }} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: status.color === c ? '3px solid var(--text-on-surface)' : '2px solid transparent', cursor: 'pointer' }} />)}
+                          </div>
+                        </>)}
+                      </div>
                       {renamingStatusId === status.id ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
                           <input autoFocus type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { renameStatus(status.id, newStatusLabel); setRenamingStatusId(null); } if (e.key === 'Escape') setRenamingStatusId(null); }} style={{ ...inputStyle, padding: '4px 8px', fontSize: '12px' }} />

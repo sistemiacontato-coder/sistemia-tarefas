@@ -590,6 +590,8 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const [showHeaderPlusDropdown, setShowHeaderPlusDropdown] = useState(false);
+  const [inlineColorPickerFor, setInlineColorPickerFor] = useState<string | null>(null);
+  const PALETTE = ['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#6366f1','#8b5cf6','#ec4899','#6b7280'];
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -2248,12 +2250,20 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 8, marginTop: -4 }}>
                                 {[...new Set(tasks.map(t => t.client_name).filter(Boolean))].map(client => {
                                   const currentColor = field.optionColors?.[client] || '#6366f1';
+                                  const pickerKey = `mgmt_${client}`;
                                   return (
-                                    <label key={client} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', background: 'var(--surface)', borderRadius: 4, userSelect: 'none' as const }}>
-                                      <div style={{ width: 14, height: 14, borderRadius: 4, background: currentColor, border: '1px solid var(--outline)', flexShrink: 0 }} />
+                                    <div key={client} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', background: 'var(--surface)', borderRadius: 4 }}>
+                                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                                        <button onClick={() => setInlineColorPickerFor(inlineColorPickerFor === pickerKey ? null : pickerKey)} style={{ width: 14, height: 14, borderRadius: 4, background: currentColor, border: '1px solid var(--outline)', cursor: 'pointer' }} />
+                                        {inlineColorPickerFor === pickerKey && (<>
+                                          <div onClick={() => setInlineColorPickerFor(null)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+                                          <div style={{ position: 'absolute', top: '18px', left: 0, zIndex: 1000, background: 'var(--surface)', border: '1px solid var(--outline)', borderRadius: 8, padding: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }}>
+                                            {PALETTE.map(c => <button key={c} onClick={() => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: c } } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); setInlineColorPickerFor(null); }} style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: currentColor === c ? '3px solid var(--text-on-surface)' : '2px solid transparent', cursor: 'pointer' }} />)}
+                                          </div>
+                                        </>)}
+                                      </div>
                                       <span style={{ fontSize: '11px', color: 'var(--text-on-surface)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{client}</span>
-                                      <input type="color" value={currentColor} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: e.target.value } } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' as const }} />
-                                    </label>
+                                    </div>
                                   );
                                 })}
                               </div>
