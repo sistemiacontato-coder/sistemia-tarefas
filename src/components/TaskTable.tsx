@@ -583,6 +583,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const [showHeaderPlusDropdown, setShowHeaderPlusDropdown] = useState(false);
+  const [showClientColorsExpanded, setShowClientColorsExpanded] = useState(false);
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -2227,10 +2228,9 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   {field.key === 'cliente_ecosystem' && (
-                                    <label title="Cor de fundo do cliente" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                                      <div style={{ width: 14, height: 14, borderRadius: 3, background: field.bgColor || '#6366f1', border: '1px solid var(--outline)', cursor: 'pointer' }} />
-                                      <input type="color" value={field.bgColor || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, bgColor: e.target.value } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
-                                    </label>
+                                    <button onClick={() => setShowClientColorsExpanded(v => !v)} title="Cores por cliente" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: showClientColorsExpanded ? 'var(--primary)' : 'var(--text-muted)', padding: '2px' }}>
+                                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>palette</span>
+                                    </button>
                                   )}
                                   {!field.isSystemDefault && (
                                     <>
@@ -2241,6 +2241,24 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                 </div>
                               </>
                             )}
+                            {/* Sub-painel de cores por cliente */}
+                            {field.key === 'cliente_ecosystem' && showClientColorsExpanded && (() => {
+                              const uniqueClients = [...new Set(tasks.map(t => t.client_name).filter(Boolean))];
+                              if (!uniqueClients.length) return <div style={{ padding: '4px 6px', fontSize: '10px', color: 'var(--text-muted)' }}>Nenhum cliente nas tarefas</div>;
+                              return (
+                                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {uniqueClients.map(client => (
+                                    <div key={client} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', background: 'var(--surface)', borderRadius: 4 }}>
+                                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flex: 1, fontSize: '11px', color: 'var(--text-on-surface)' }}>
+                                        <div style={{ width: 12, height: 12, borderRadius: 3, background: field.optionColors?.[client] || '#6366f1', border: '1px solid var(--outline)', flexShrink: 0 }} />
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client}</span>
+                                        <input type="color" value={field.optionColors?.[client] || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: e.target.value } } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })}
@@ -2685,10 +2703,9 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                 ) : (
                                   <>
                                     {field.key === 'cliente_ecosystem' && (
-                                      <label title="Cor de fundo do cliente" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}>
-                                        <div style={{ width: 14, height: 14, borderRadius: 3, background: field.bgColor || '#6366f1', border: '1px solid var(--outline)', cursor: 'pointer' }} />
-                                        <input type="color" value={field.bgColor || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, bgColor: e.target.value } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
-                                      </label>
+                                      <button onClick={() => setShowClientColorsExpanded(v => !v)} title="Cores por cliente" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: showClientColorsExpanded ? 'var(--primary)' : 'var(--text-muted)', padding: '2px' }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>palette</span>
+                                      </button>
                                     )}
                                     {!field.isSystemDefault && (
                                       <>
@@ -2699,6 +2716,24 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                   </>
                                 )}
                               </div>
+                              {/* Sub-painel de cores por cliente */}
+                              {field.key === 'cliente_ecosystem' && showClientColorsExpanded && (() => {
+                                const uniqueClients = [...new Set(tasks.map(t => t.client_name).filter(Boolean))];
+                                if (!uniqueClients.length) return <div style={{ padding: '4px 6px', fontSize: '10px', color: 'var(--text-muted)' }}>Nenhum cliente</div>;
+                                return (
+                                  <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 4 }}>
+                                    {uniqueClients.map(client => (
+                                      <div key={client} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', background: 'var(--surface)', borderRadius: 4 }}>
+                                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flex: 1, fontSize: '11px', color: 'var(--text-on-surface)' }}>
+                                          <div style={{ width: 12, height: 12, borderRadius: 3, background: field.optionColors?.[client] || '#6366f1', border: '1px solid var(--outline)', flexShrink: 0 }} />
+                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client}</span>
+                                          <input type="color" value={field.optionColors?.[client] || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: e.target.value } } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                         })}

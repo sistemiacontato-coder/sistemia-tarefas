@@ -41,5 +41,6 @@ export interface CustomField {
   isSystemDefault?: boolean;
   bgColor?: string;
   color?: string;
+  optionColors?: Record<string, string>;
 }
 

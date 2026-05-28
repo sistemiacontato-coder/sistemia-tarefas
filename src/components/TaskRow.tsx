@@ -2355,8 +2355,29 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             >
             {/* Menu Items */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingTop: '4px' }}>
+
+              {/* Ver tarefa pai — só aparece quando é subtarefa */}
+              {task.parent_id && (() => {
+                const parentTask = allTasks.find(t => t.id === task.parent_id);
+                if (!parentTask) return null;
+                return (
+                  <div
+                    onClick={() => { onEditTask(parentTask); setShowThreeDotsMenu(false); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#2d2e30'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#a1a1aa' }}>arrow_upward</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ fontWeight: 600 }}>Ver tarefa pai</span>
+                      <span style={{ fontSize: '10px', color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '130px' }}>{parentTask.description}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Renomear */}
-              <div 
+              <div
                 onClick={() => {
                   onEditTask(task);
                   setShowThreeDotsMenu(false);
@@ -2629,8 +2650,8 @@ const CustomFieldCell: React.FC<CustomFieldCellProps> = ({ taskId, field, isRead
         }}
       >
         {/* Camada visual de texto perfeitamente alinhada e com reticências (...) */}
-        {field.key === 'cliente_ecosystem' && value && field.bgColor ? (
-          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '1px 8px', borderRadius: 4, background: field.bgColor, fontSize: '11px', fontWeight: 600, color: '#fff', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+        {field.key === 'cliente_ecosystem' && value && (field.optionColors?.[value] || field.bgColor) ? (
+          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '1px 8px', borderRadius: 4, background: field.optionColors?.[value] || field.bgColor, fontSize: '11px', fontWeight: 600, color: '#fff', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
             {value}
           </div>
         ) : (
