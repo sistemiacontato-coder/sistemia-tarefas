@@ -582,6 +582,13 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const [showHeaderPlusDropdown, setShowHeaderPlusDropdown] = useState(false);
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSortCol = (col: string) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
   const filterRef = useRef<HTMLDivElement>(null);
   const columnRef = useRef<HTMLDivElement>(null);
   const subtasksRef = useRef<HTMLDivElement>(null);
@@ -591,17 +598,26 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   // Carrega e gerencia a lista dinâmica de status
   const loadStatuses = () => {
     const defaultStatuses: CustomStatus[] = [
-      { id: '1', label: 'PARA FAZER', category: 'A Fazer', color: '#7e7e88', icon: 'radio_button_unchecked' },
+      { id: '1', label: 'PARA FAZER', category: 'A Fazer', color: '#9ca3af', icon: 'radio_button_unchecked' },
       { id: '2', label: 'AGUARDANDO DADOS', category: 'Pendente', color: '#ba55d3', icon: 'schedule' },
-      { id: '3', label: 'EXECUTANDO', category: 'Em Execução', color: '#0058be', icon: 'pending' },
-      { id: '4', label: 'AVISOS', category: 'Pendente', color: '#a1a1aa', icon: 'check_circle' },
-      { id: '5', label: 'DESCARTADO', category: 'Pendente', color: '#a1a1aa', icon: 'check_circle' },
+      { id: '3', label: 'EXECUTANDO', category: 'Em Execução', color: '#3b82f6', icon: 'pending' },
+      { id: '4', label: 'AVISOS', category: 'Pendente', color: '#f59e0b', icon: 'warning' },
+      { id: '5', label: 'DESCARTADO', category: 'Pendente', color: '#ef4444', icon: 'cancel' },
       { id: '6', label: 'FEITO', category: 'Concluído', color: '#10b981', icon: 'check_circle' }
     ];
 
+    const colorMap: Record<string, Partial<CustomStatus>> = {
+      '1': { color: '#9ca3af', icon: 'radio_button_unchecked' },
+      '4': { color: '#f59e0b', icon: 'warning' },
+      '5': { color: '#ef4444', icon: 'cancel' },
+    };
+
     const saved = localStorage.getItem('custom_statuses_list');
     if (saved) {
-      setCustomStatuses(JSON.parse(saved));
+      const parsed: CustomStatus[] = JSON.parse(saved);
+      const migrated = parsed.map(s => colorMap[s.id] ? { ...s, ...colorMap[s.id] } : s);
+      localStorage.setItem('custom_statuses_list', JSON.stringify(migrated));
+      setCustomStatuses(migrated);
     } else {
       localStorage.setItem('custom_statuses_list', JSON.stringify(defaultStatuses));
       setCustomStatuses(defaultStatuses);
@@ -969,7 +985,24 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     }));
   };
 
-  const visibleTasks = tasks.filter(isTaskVisible);
+  const visibleTasks = (() => {
+    const base = tasks.filter(isTaskVisible);
+    if (!sortCol) return base;
+    return [...base].sort((a, b) => {
+      let va: string | number = '';
+      let vb: string | number = '';
+      if (sortCol === 'taskName') { va = a.description || ''; vb = b.description || ''; }
+      else if (sortCol === 'status') { va = a.custom_label || a.status || ''; vb = b.custom_label || b.status || ''; }
+      else if (sortCol === 'startDate') { va = a.start_date || ''; vb = b.start_date || ''; }
+      else if (sortCol === 'endDate') { va = a.end_date || ''; vb = b.end_date || ''; }
+      else if (sortCol === 'financialValue') { va = parseFloat(a.financial_value as any) || 0; vb = parseFloat(b.financial_value as any) || 0; }
+      else if (sortCol === 'priority') { const ord: Record<string,number> = { urgent: 0, high: 1, medium: 2, low: 3, '': 4 }; va = ord[a.priority || ''] ?? 4; vb = ord[b.priority || ''] ?? 4; }
+      else if (sortCol === 'cliente_ecosystem') { va = a.client_name || ''; vb = b.client_name || ''; }
+      else { va = localStorage.getItem(`task_custom_val_${a.id}_${sortCol}`) || ''; vb = localStorage.getItem(`task_custom_val_${b.id}_${sortCol}`) || ''; }
+      if (typeof va === 'number') return sortDir === 'asc' ? va - vb as number : vb as number - va;
+      return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    });
+  })();
 
   const handleToggleSelect = (id: string, selected: boolean, shiftKey?: boolean) => {
     setSelectedTaskIds(prev => {
@@ -2308,10 +2341,13 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               borderBottom: '1px solid var(--outline-variant)',
               height: '30px'
             }}>
-              <th style={{ width: columnWidths.taskName, position: 'relative', padding: '0 8px 0 16px', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                Nome da Tarefa / Etapa
+              <th onClick={() => handleSortCol('taskName')} style={{ width: columnWidths.taskName, position: 'relative', padding: '0 8px 0 16px', fontSize: '10px', fontWeight: 600, color: sortCol === 'taskName' ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  Nome da Tarefa / Etapa
+                  {sortCol === 'taskName' && <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                </span>
                 <div
-                  onMouseDown={(e) => handleResizeStart(e, 'taskName')}
+                  onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'taskName'); }}
                   style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
                   onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
                   onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
@@ -2319,124 +2355,38 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               </th>
 
               {getOrderedColumns().map(key => {
-                if (key === 'progress' && visibleColumns.progress) {
-                  return (
-                    <th 
-                      key="progress"
-                      draggable
-                      onDragStart={(e) => handleColumnDragStart(e, 'progress')}
-                      onDragOver={handleColumnDragOver}
-                      onDrop={(e) => handleColumnDrop(e, 'progress')}
-                      style={{ width: columnWidths.progress, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', cursor: 'grab', userSelect: 'none' }}
-                    >
-                      {nativeColumnNames.progress}
-                      <div
-                        onMouseDown={(e) => handleResizeStart(e, 'progress')}
-                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
-                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                      />
-                    </th>
-                  );
-                }
+                const sortableNativeCols: Record<string, string | undefined> = {
+                  progress: undefined,
+                  status: 'status', startDate: 'startDate', endDate: 'endDate',
+                  financialValue: 'financialValue', priority: 'priority',
+                };
 
-                if (key === 'status' && visibleColumns.status) {
-                  return (
-                    <th 
-                      key="status"
-                      draggable
-                      onDragStart={(e) => handleColumnDragStart(e, 'status')}
-                      onDragOver={handleColumnDragOver}
-                      onDrop={(e) => handleColumnDrop(e, 'status')}
-                      style={{ width: columnWidths.status, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'left', cursor: 'grab', userSelect: 'none' }}
-                    >
-                      {nativeColumnNames.status}
-                      <div
-                        onMouseDown={(e) => handleResizeStart(e, 'status')}
-                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
-                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                      />
-                    </th>
-                  );
-                }
+                const nativeVisMap: Record<string, boolean | undefined> = {
+                  progress: visibleColumns.progress, status: visibleColumns.status,
+                  startDate: visibleColumns.startDate, endDate: visibleColumns.endDate,
+                  financialValue: visibleColumns.financialValue, priority: visibleColumns.priority,
+                };
 
-                if (key === 'startDate' && visibleColumns.startDate) {
+                if (key in nativeVisMap && nativeVisMap[key]) {
+                  const sortKey = sortableNativeCols[key];
+                  const colWidth = (columnWidths as any)[key] || 100;
+                  const isSort = sortCol === sortKey;
                   return (
-                    <th 
-                      key="startDate"
+                    <th
+                      key={key}
                       draggable
-                      onDragStart={(e) => handleColumnDragStart(e, 'startDate')}
+                      onDragStart={(e) => handleColumnDragStart(e, key)}
                       onDragOver={handleColumnDragOver}
-                      onDrop={(e) => handleColumnDrop(e, 'startDate')}
-                      style={{ width: columnWidths.startDate, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'left', cursor: 'grab', userSelect: 'none' }}
+                      onDrop={(e) => handleColumnDrop(e, key)}
+                      onClick={() => sortKey && handleSortCol(sortKey)}
+                      style={{ width: colWidth, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: isSort ? 'var(--primary)' : 'var(--text-muted)', textAlign: 'left', cursor: sortKey ? 'pointer' : 'grab', userSelect: 'none' }}
                     >
-                      {nativeColumnNames.startDate}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        {(nativeColumnNames as any)[key]}
+                        {isSort && <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                      </span>
                       <div
-                        onMouseDown={(e) => handleResizeStart(e, 'startDate')}
-                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
-                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                      />
-                    </th>
-                  );
-                }
-
-                if (key === 'endDate' && visibleColumns.endDate) {
-                  return (
-                    <th 
-                      key="endDate"
-                      draggable
-                      onDragStart={(e) => handleColumnDragStart(e, 'endDate')}
-                      onDragOver={handleColumnDragOver}
-                      onDrop={(e) => handleColumnDrop(e, 'endDate')}
-                      style={{ width: columnWidths.endDate, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'left', cursor: 'grab', userSelect: 'none' }}
-                    >
-                      {nativeColumnNames.endDate}
-                      <div
-                        onMouseDown={(e) => handleResizeStart(e, 'endDate')}
-                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
-                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                      />
-                    </th>
-                  );
-                }
-
-                if (key === 'financialValue' && visibleColumns.financialValue) {
-                  return (
-                    <th 
-                      key="financialValue"
-                      draggable
-                      onDragStart={(e) => handleColumnDragStart(e, 'financialValue')}
-                      onDragOver={handleColumnDragOver}
-                      onDrop={(e) => handleColumnDrop(e, 'financialValue')}
-                      style={{ width: columnWidths.financialValue, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'left', cursor: 'grab', userSelect: 'none' }}
-                    >
-                      {nativeColumnNames.financialValue}
-                      <div
-                        onMouseDown={(e) => handleResizeStart(e, 'financialValue')}
-                        style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
-                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                      />
-                    </th>
-                  );
-                }
-
-                if (key === 'priority' && visibleColumns.priority) {
-                  return (
-                    <th 
-                      key="priority"
-                      draggable
-                      onDragStart={(e) => handleColumnDragStart(e, 'priority')}
-                      onDragOver={handleColumnDragOver}
-                      onDrop={(e) => handleColumnDrop(e, 'priority')}
-                      style={{ width: columnWidths.priority, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'left', cursor: 'grab', userSelect: 'none' }}
-                    >
-                      {nativeColumnNames.priority}
-                      <div
-                        onMouseDown={(e) => handleResizeStart(e, 'priority')}
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, key); }}
                         style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
                         onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
                         onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
@@ -2450,32 +2400,24 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   const isShown = visibleCustomColumns[field.key] !== false;
                   if (!isShown) return null;
                   const colWidth = columnWidths[field.key] || 120;
+                  const sortKey = field.key === 'cliente_ecosystem' ? 'cliente_ecosystem' : field.key;
+                  const isSort = sortCol === sortKey;
                   return (
-                    <th 
-                      key={field.key} 
+                    <th
+                      key={field.key}
                       draggable
                       onDragStart={(e) => handleColumnDragStart(e, field.key)}
                       onDragOver={handleColumnDragOver}
                       onDrop={(e) => handleColumnDrop(e, field.key)}
-                      style={{ 
-                        width: colWidth, 
-                        maxWidth: colWidth,
-                        position: 'relative', 
-                        padding: '0 8px', 
-                        fontSize: '10px', 
-                        fontWeight: 600, 
-                        color: 'var(--text-muted)', 
-                        cursor: 'grab', 
-                        userSelect: 'none',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        boxSizing: 'border-box'
-                      }}
+                      onClick={() => handleSortCol(sortKey)}
+                      style={{ width: colWidth, maxWidth: colWidth, position: 'relative', padding: '0 8px', fontSize: '10px', fontWeight: 600, color: isSort ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', boxSizing: 'border-box' }}
                     >
-                      {field.label}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        {field.label}
+                        {isSort && <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>}
+                      </span>
                       <div
-                        onMouseDown={(e) => handleResizeStart(e, field.key)}
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, field.key); }}
                         style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', cursor: 'col-resize', zIndex: 10, background: 'transparent', transition: 'background 0.2s' }}
                         onMouseOver={(e) => e.currentTarget.style.background = 'rgba(123, 104, 238, 0.2)'}
                         onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}

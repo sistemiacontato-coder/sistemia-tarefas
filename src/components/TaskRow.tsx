@@ -544,7 +544,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '4px 4px 2px 4px' }}>Ativos</div>
+              <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted-dark)', textTransform: 'uppercase', padding: '4px 4px 2px 4px' }}>Ativos</div>
 
               {filteredStatuses.filter(s => s.category !== 'Concluído').map(status => {
                 const isCurrent = getCustomLabel() === status.label;
@@ -556,7 +556,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                       background: isCurrent ? 'var(--primary-light)' : 'transparent',
                       border: 'none',
                       borderRadius: 'var(--radius-sm)',
-                      color: isCurrent ? 'var(--text-on-surface)' : 'var(--text-muted-dark)',
+                      color: isCurrent ? 'var(--text-on-surface)' : 'var(--text-on-surface)',
                       padding: '4px 6px',
                       fontSize: '11px',
                       fontWeight: isCurrent ? 600 : 500,
@@ -591,7 +591,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                 );
               })}
 
-              <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '6px 4px 2px 4px', borderTop: '1px solid var(--outline)' }}>Fechado</div>
+              <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted-dark)', textTransform: 'uppercase', padding: '6px 4px 2px 4px', borderTop: '1px solid var(--outline)' }}>Fechado</div>
 
               {filteredStatuses.filter(s => s.category === 'Concluído').map(status => {
                 const isCurrent = getCustomLabel() === status.label;
@@ -603,7 +603,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                       background: isCurrent ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
                       border: 'none',
                       borderRadius: 'var(--radius-sm)',
-                      color: isCurrent ? '#10b981' : 'var(--text-muted-dark)',
+                      color: isCurrent ? '#10b981' : 'var(--text-on-surface)',
                       padding: '4px 6px',
                       fontSize: '11px',
                       fontWeight: isCurrent ? 600 : 500,
