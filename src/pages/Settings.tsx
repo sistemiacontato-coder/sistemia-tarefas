@@ -145,8 +145,12 @@ export const Settings: React.FC = () => {
     try { return JSON.parse(localStorage.getItem('custom_fields_list') || '[]'); } catch { return []; }
   });
   const [knownClients, setKnownClients] = useState<string[]>([]);
+  const [showClientsList, setShowClientsList] = useState(false);
+  const [showStatusList, setShowStatusList] = useState(false);
   const [renamingClient, setRenamingClient] = useState<string | null>(null);
   const [newClientName, setNewClientName] = useState('');
+  const [renamingStatusId, setRenamingStatusId] = useState<string | null>(null);
+  const [newStatusLabel, setNewStatusLabel] = useState('');
   const [clientSaveMsg, setClientSaveMsg] = useState('');
   const [statusSaveMsg, setStatusSaveMsg] = useState('');
 
@@ -644,47 +648,39 @@ export const Settings: React.FC = () => {
           {/* ── Personalização ── */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--outline)', borderRadius: 'var(--radius-lg)', padding: '24px' }}>
             {sectionTitle('palette', 'Personalização')}
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>
-              Edite nomes e cores dos clientes e dos status das tarefas.
-            </p>
 
-            {/* Clientes */}
-            <div style={{ marginBottom: '28px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--text-muted)' }}>group</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-on-surface)' }}>Clientes</span>
-                {clientSaveMsg && <span style={{ fontSize: '11px', color: '#10b981', marginLeft: '8px' }}>{clientSaveMsg}</span>}
-              </div>
-              {knownClients.length === 0 ? (
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Nenhum cliente encontrado nas tarefas.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {knownClients.map(client => (
+            {/* Accordion item — Clientes */}
+            <div style={{ border: '1px solid var(--outline)', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '8px' }}>
+              <button
+                onClick={() => setShowClientsList(v => !v)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: showClientsList ? 'var(--surface-low)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>group</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-on-surface)', flex: 1 }}>Clientes</span>
+                {clientSaveMsg && <span style={{ fontSize: '11px', color: '#10b981' }}>{clientSaveMsg}</span>}
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-muted)', transition: 'transform 0.2s', transform: showClientsList ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+              </button>
+              {showClientsList && (
+                <div style={{ padding: '8px 16px 16px', borderTop: '1px solid var(--outline)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {knownClients.length === 0 ? (
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '8px 0' }}>Nenhum cliente encontrado nas tarefas.</p>
+                  ) : knownClients.map(client => (
                     <div key={client} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--surface-low)', borderRadius: 'var(--radius-md)', border: '1px solid var(--outline)' }}>
-                      {/* Color swatch */}
                       <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }} title="Clique para alterar a cor">
                         <div style={{ width: 22, height: 22, borderRadius: 6, background: getClientColor(client), border: '2px solid var(--outline)', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-                        <input type="color" value={getClientColor(client)} onChange={(e) => updateClientColor(client, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
+                        <input type="color" value={getClientColor(client)} onChange={e => updateClientColor(client, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
                       </label>
-                      {/* Name / rename */}
                       {renamingClient === client ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-                          <input
-                            autoFocus
-                            type="text"
-                            value={newClientName}
-                            onChange={e => setNewClientName(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') renameClient(client, newClientName); if (e.key === 'Escape') setRenamingClient(null); }}
-                            style={{ ...inputStyle, padding: '4px 8px', fontSize: '12px' }}
-                          />
-                          <button onClick={() => renameClient(client, newClientName)} style={{ background: '#10b981', border: 'none', borderRadius: 4, color: '#fff', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>Salvar</button>
+                          <input autoFocus type="text" value={newClientName} onChange={e => setNewClientName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameClient(client, newClientName); if (e.key === 'Escape') setRenamingClient(null); }} style={{ ...inputStyle, padding: '4px 8px', fontSize: '12px' }} />
+                          <button onClick={() => renameClient(client, newClientName)} style={{ background: '#10b981', border: 'none', borderRadius: 4, color: '#fff', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>Salvar</button>
                           <button onClick={() => setRenamingClient(null)} style={{ background: 'transparent', border: '1px solid var(--outline)', borderRadius: 4, color: 'var(--text-muted)', padding: '4px 8px', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
                         </div>
                       ) : (
                         <>
                           <span style={{ fontSize: '13px', color: 'var(--text-on-surface)', flex: 1 }}>{client}</span>
                           <button onClick={() => { setRenamingClient(client); setNewClientName(client); }} title="Renomear" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '2px' }} onMouseOver={e => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
                           </button>
                         </>
                       )}
@@ -694,35 +690,44 @@ export const Settings: React.FC = () => {
               )}
             </div>
 
-            {/* Status */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--text-muted)' }}>adjust</span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-on-surface)' }}>Status</span>
-                {statusSaveMsg && <span style={{ fontSize: '11px', color: '#10b981', marginLeft: '8px' }}>{statusSaveMsg}</span>}
-              </div>
-              {customStatuses.length === 0 ? (
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Nenhum status configurado.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {customStatuses.map(status => (
+            {/* Accordion item — Status */}
+            <div style={{ border: '1px solid var(--outline)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+              <button
+                onClick={() => setShowStatusList(v => !v)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: showStatusList ? 'var(--surface-low)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>adjust</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-on-surface)', flex: 1 }}>Status</span>
+                {statusSaveMsg && <span style={{ fontSize: '11px', color: '#10b981' }}>{statusSaveMsg}</span>}
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-muted)', transition: 'transform 0.2s', transform: showStatusList ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+              </button>
+              {showStatusList && (
+                <div style={{ padding: '8px 16px 16px', borderTop: '1px solid var(--outline)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {customStatuses.length === 0 ? (
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '8px 0' }}>Nenhum status configurado.</p>
+                  ) : customStatuses.map(status => (
                     <div key={status.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--surface-low)', borderRadius: 'var(--radius-md)', border: '1px solid var(--outline)' }}>
-                      {/* Cor */}
                       <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }} title="Clique para alterar a cor">
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: status.color, border: '2px solid var(--outline)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 22, height: 22, borderRadius: 6, background: status.color, border: '2px solid var(--outline)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
                           <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#fff' }}>{status.icon}</span>
                         </div>
-                        <input type="color" value={status.color} onChange={(e) => updateStatusColor(status.id, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
+                        <input type="color" value={status.color} onChange={e => updateStatusColor(status.id, e.target.value)} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
                       </label>
-                      {/* Label editável inline */}
-                      <input
-                        type="text"
-                        defaultValue={status.label}
-                        onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== status.label) renameStatus(status.id, e.target.value.trim()); }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-on-surface)', cursor: 'text' }}
-                      />
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0, fontWeight: 600, textTransform: 'uppercase' }}>{status.category}</span>
+                      {renamingStatusId === status.id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                          <input autoFocus type="text" value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { renameStatus(status.id, newStatusLabel); setRenamingStatusId(null); } if (e.key === 'Escape') setRenamingStatusId(null); }} style={{ ...inputStyle, padding: '4px 8px', fontSize: '12px' }} />
+                          <button onClick={() => { renameStatus(status.id, newStatusLabel); setRenamingStatusId(null); }} style={{ background: '#10b981', border: 'none', borderRadius: 4, color: '#fff', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>Salvar</button>
+                          <button onClick={() => setRenamingStatusId(null)} style={{ background: 'transparent', border: '1px solid var(--outline)', borderRadius: 4, color: 'var(--text-muted)', padding: '4px 8px', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
+                        </div>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: '13px', color: 'var(--text-on-surface)', flex: 1 }}>{status.label || status.category}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0, fontWeight: 600, textTransform: 'uppercase' as const }}>{status.category}</span>
+                          <button onClick={() => { setRenamingStatusId(status.id); setNewStatusLabel(status.label || status.category); }} title="Renomear" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '2px' }} onMouseOver={e => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
