@@ -397,6 +397,9 @@ export const supabaseService = {
         
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { level: _l, path_route: _p, children: _c, ...dbTaskData } = taskData as any;
+        // Converte strings vazias para null em campos de data (Postgres rejeita '' para tipo date)
+        if (dbTaskData.start_date === '') dbTaskData.start_date = null;
+        if (dbTaskData.end_date === '') dbTaskData.end_date = null;
         const { data, error } = await supabaseRealClient
           .from('sia_tarefas_tasks')
           .insert([{
@@ -484,9 +487,13 @@ export const supabaseService = {
           }
         }
         
+        // Converte strings vazias para null em campos de data
+        const safeUpdates: any = { ...updates };
+        if (safeUpdates.start_date === '') safeUpdates.start_date = null;
+        if (safeUpdates.end_date === '') safeUpdates.end_date = null;
         const { data, error } = await supabaseRealClient
           .from('sia_tarefas_tasks')
-          .update(updates)
+          .update(safeUpdates)
           .eq('id', id)
           .select()
           .single();
