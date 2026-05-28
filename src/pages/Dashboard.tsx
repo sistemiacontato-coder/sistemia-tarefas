@@ -138,8 +138,8 @@ export const Dashboard: React.FC = () => {
         client_name: targetClientName,
         contract_value: 0,
         status: 'A Fazer' as TaskStatus,
-        start_date: null,
-        end_date: null,
+        start_date: '',
+        end_date: '',
         owner_id: 'default_owner',
         level: newLevel
       };
@@ -186,8 +186,8 @@ export const Dashboard: React.FC = () => {
         client_name: clientName,
         contract_value: 0,
         status: 'A Fazer' as TaskStatus,
-        start_date: null,
-        end_date: null,
+        start_date: '',
+        end_date: '',
         owner_id: 'default_owner',
         level: newLevel
       };
