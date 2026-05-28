@@ -992,14 +992,17 @@ export const TaskTable: React.FC<TaskTableProps> = ({
       let va: string | number = '';
       let vb: string | number = '';
       if (sortCol === 'taskName') { va = a.description || ''; vb = b.description || ''; }
-      else if (sortCol === 'status') { va = a.custom_label || a.status || ''; vb = b.custom_label || b.status || ''; }
+      else if (sortCol === 'status') { va = a.status || ''; vb = b.status || ''; }
       else if (sortCol === 'startDate') { va = a.start_date || ''; vb = b.start_date || ''; }
       else if (sortCol === 'endDate') { va = a.end_date || ''; vb = b.end_date || ''; }
-      else if (sortCol === 'financialValue') { va = parseFloat(a.financial_value as any) || 0; vb = parseFloat(b.financial_value as any) || 0; }
-      else if (sortCol === 'priority') { const ord: Record<string,number> = { urgent: 0, high: 1, medium: 2, low: 3, '': 4 }; va = ord[a.priority || ''] ?? 4; vb = ord[b.priority || ''] ?? 4; }
+      else if (sortCol === 'financialValue') { va = a.contract_value || 0; vb = b.contract_value || 0; }
+      else if (sortCol === 'priority') {
+        const ord: Record<string, number> = { Urgente: 0, Alta: 1, Normal: 2, Baixa: 3, '': 4 };
+        va = ord[a.priority || ''] ?? 4; vb = ord[b.priority || ''] ?? 4;
+      }
       else if (sortCol === 'cliente_ecosystem') { va = a.client_name || ''; vb = b.client_name || ''; }
       else { va = localStorage.getItem(`task_custom_val_${a.id}_${sortCol}`) || ''; vb = localStorage.getItem(`task_custom_val_${b.id}_${sortCol}`) || ''; }
-      if (typeof va === 'number') return sortDir === 'asc' ? va - vb as number : vb as number - va;
+      if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
       return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
     });
   })();
