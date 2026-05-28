@@ -1000,23 +1000,52 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   const visibleTasks = (() => {
     const base = tasks.filter(isTaskVisible);
     if (!sortCol) return base;
-    return [...base].sort((a, b) => {
-      let va: string | number = '';
-      let vb: string | number = '';
-      if (sortCol === 'taskName') { va = a.description || ''; vb = b.description || ''; }
-      else if (sortCol === 'status') { va = a.status || ''; vb = b.status || ''; }
-      else if (sortCol === 'startDate') { va = a.start_date || ''; vb = b.start_date || ''; }
-      else if (sortCol === 'endDate') { va = a.end_date || ''; vb = b.end_date || ''; }
-      else if (sortCol === 'financialValue') { va = a.contract_value || 0; vb = b.contract_value || 0; }
-      else if (sortCol === 'priority') {
+
+    const getTaskSortValue = (t: Task): string | number => {
+      if (sortCol === 'taskName') return t.description || '';
+      if (sortCol === 'progress') return getTaskProgress(t);
+      if (sortCol === 'status') return t.status || '';
+      if (sortCol === 'startDate') return t.start_date || '';
+      if (sortCol === 'endDate') return t.end_date || '';
+      if (sortCol === 'financialValue') return t.contract_value || 0;
+      if (sortCol === 'priority') {
         const ord: Record<string, number> = { Urgente: 0, Alta: 1, Normal: 2, Baixa: 3, '': 4 };
-        va = ord[a.priority || ''] ?? 4; vb = ord[b.priority || ''] ?? 4;
+        return ord[t.priority || ''] ?? 4;
       }
-      else if (sortCol === 'cliente_ecosystem') { va = a.client_name || ''; vb = b.client_name || ''; }
-      else { va = localStorage.getItem(`task_custom_val_${a.id}_${sortCol}`) || ''; vb = localStorage.getItem(`task_custom_val_${b.id}_${sortCol}`) || ''; }
+      if (sortCol === 'cliente_ecosystem') return t.client_name || '';
+      return localStorage.getItem(`task_custom_val_${t.id}_${sortCol}`) || '';
+    };
+
+    const compareSortValues = (va: string | number, vb: string | number) => {
       if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
       return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    };
+
+    // Identifica "raiz visível": tarefa cujo pai não está na lista visível
+    const baseIds = new Set(base.map(t => t.id));
+    const isVisibleRoot = (t: Task) => !t.parent_id || !baseIds.has(t.parent_id);
+
+    // Encontra o ancestral raiz visível de uma tarefa
+    const getVisibleRoot = (t: Task): Task => {
+      if (isVisibleRoot(t)) return t;
+      const parent = tasks.find(p => p.id === t.parent_id);
+      return parent ? getVisibleRoot(parent) : t;
+    };
+
+    // Agrupa descendentes por raiz, mantendo ordem original de `base`
+    const groups = new Map<string, Task[]>();
+    base.forEach(t => {
+      const root = getVisibleRoot(t);
+      if (!groups.has(root.id)) groups.set(root.id, []);
+      groups.get(root.id)!.push(t);
     });
+
+    // Ordena apenas as raízes
+    const roots = [...groups.keys()].map(id => tasks.find(t => t.id === id)!).filter(Boolean);
+    roots.sort((a, b) => compareSortValues(getTaskSortValue(a), getTaskSortValue(b)));
+
+    // Reconstrói lista: raiz + seus descendentes visíveis (ordem original)
+    return roots.flatMap(root => groups.get(root.id) || []);
   })();
 
   const handleToggleSelect = (id: string, selected: boolean, shiftKey?: boolean) => {
@@ -1184,7 +1213,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                     }}
                   >
                     <option value="">Cliente</option>
-                    {(customFields.find(f => f.key === 'cliente_ecosystem')?.options || ['TechNova Solutions', 'Global Logistics', 'Alpha Developers']).map(opt => (
+                    {[...new Set(tasks.map(t => t.client_name).filter(Boolean))].map(opt => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </select>
@@ -2197,6 +2226,12 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{field.label}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  {field.key === 'cliente_ecosystem' && (
+                                    <label title="Cor de fundo do cliente" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                      <div style={{ width: 14, height: 14, borderRadius: 3, background: field.bgColor || '#6366f1', border: '1px solid var(--outline)', cursor: 'pointer' }} />
+                                      <input type="color" value={field.bgColor || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, bgColor: e.target.value } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
+                                    </label>
+                                  )}
                                   {!field.isSystemDefault && (
                                     <>
                                       <button onClick={() => { setRenamingFieldKey(field.key); setTempRenameValue(field.label); }} title="Renomear campo" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}><span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span></button>
@@ -2371,7 +2406,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
 
               {getOrderedColumns().map(key => {
                 const sortableNativeCols: Record<string, string | undefined> = {
-                  progress: undefined,
+                  progress: 'progress',
                   status: 'status', startDate: 'startDate', endDate: 'endDate',
                   financialValue: 'financialValue', priority: 'priority',
                 };
@@ -2649,6 +2684,12 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                   </>
                                 ) : (
                                   <>
+                                    {field.key === 'cliente_ecosystem' && (
+                                      <label title="Cor de fundo do cliente" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}>
+                                        <div style={{ width: 14, height: 14, borderRadius: 3, background: field.bgColor || '#6366f1', border: '1px solid var(--outline)', cursor: 'pointer' }} />
+                                        <input type="color" value={field.bgColor || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, bgColor: e.target.value } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
+                                      </label>
+                                    )}
                                     {!field.isSystemDefault && (
                                       <>
                                         <button onClick={() => { setRenamingFieldKey(field.key); setTempRenameValue(field.label); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', padding: '2px' }} title="Renomear campo"><span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span></button>
@@ -2823,7 +2864,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       onDeleteTask={onDeleteTask}
                       isReadOnly={isReadOnly}
                       isFlatMode={subtaskVisibilityMode === 'separar'}
-                      customFields={customFields}
+                      customFields={customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, options: [...new Set(tasks.map(t => t.client_name).filter(Boolean))] } : f)}
                       visibleCustomColumns={visibleCustomColumns}
                       allTasks={tasks}
                       columnWidths={columnWidths}
@@ -2835,14 +2876,30 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                       onDragOver={(id, relX) => { setDragOverTaskId(id); setDragOverRelativeX(relX); }}
                       onDrop={handleDropTask}
                       onDragEnd={() => { setDraggedTaskId(null); setDragOverTaskId(null); setDragOverRelativeX(0); }}
-                      dragOverRelativeX={dragOverRelativeX}
                       draggedTaskId={draggedTaskId}
-                      dragOverTaskId={dragOverTaskId}
                       activeThreeDotsTaskId={activeThreeDotsTaskId}
                       setActiveThreeDotsTaskId={setActiveThreeDotsTaskId}
                       onFilterByTag={setSelectedTagFilter}
                       onShareClient={onShareClient}
                     />
+
+                    {/* Indicador visual de drop (linha ClickUp-style) */}
+                    {dragOverTaskId === task.id && draggedTaskId && draggedTaskId !== task.id && (() => {
+                      const subtaskThreshold = (task.level || 0) * 22 + 80;
+                      const isSubtask = dragOverRelativeX > subtaskThreshold;
+                      const dropLevel = isSubtask ? (task.level || 0) + 1 : (task.level || 0);
+                      const indentPx = dropLevel * 22 + 36;
+                      const color = isSubtask ? '#22c55e' : 'var(--primary)';
+                      return (
+                        <tr key="drop-indicator" style={{ height: 0, pointerEvents: 'none' }}>
+                          <td colSpan={activeColsCount + 2} style={{ padding: 0, height: 0, position: 'relative', overflow: 'visible' }}>
+                            <div style={{ position: 'absolute', left: indentPx, right: 4, height: 2, background: color, top: -1, zIndex: 200, borderRadius: 1, transition: 'left 0.12s ease' }}>
+                              <div style={{ position: 'absolute', left: -4, top: -3, width: 8, height: 8, borderRadius: '50%', background: color }} />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })()}
 
                     {/* QuickAdd de subtarefa: aparece depois de todos os filhos existentes do pai */}
                     {isLastVisibleDescendant && (

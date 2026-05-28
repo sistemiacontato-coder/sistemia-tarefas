@@ -39,5 +39,7 @@ export interface CustomField {
   isPinned?: boolean;
   options?: string[];
   isSystemDefault?: boolean;
+  bgColor?: string;
+  color?: string;
 }
 

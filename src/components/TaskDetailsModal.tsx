@@ -281,7 +281,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
   };
 
   return (
-    <div style={{
+    <div onClick={onClose} style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -298,7 +298,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
     }}>
       
       {/* Container Principal ClickUp-Style Adaptável */}
-      <div style={{
+      <div onClick={e => e.stopPropagation()} style={{
         background: 'var(--surface)',
         borderRadius: '16px',
         width: '100%',

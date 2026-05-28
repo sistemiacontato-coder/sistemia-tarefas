@@ -55,10 +55,9 @@ interface TaskRowProps {
   onDragStart?: (taskId: string) => void;
   onDragOver?: (taskId: string, relativeX: number) => void;
   onDrop?: (draggedId: string, targetId: string, relativeX: number) => void;
-  dragOverRelativeX?: number;
+
   onDragEnd?: () => void;
   draggedTaskId?: string | null;
-  dragOverTaskId?: string | null;
   activeThreeDotsTaskId?: string | null;
   setActiveThreeDotsTaskId?: (id: string | null) => void;
   onFilterByTag?: (tagId: string) => void;
@@ -108,8 +107,6 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   onDrop,
   onDragEnd,
   draggedTaskId,
-  dragOverTaskId,
-  dragOverRelativeX = 0,
   activeThreeDotsTaskId = null,
   setActiveThreeDotsTaskId,
   onFilterByTag,
@@ -919,23 +916,15 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       onDragEnd={() => {
         onDragEnd?.();
       }}
-      style={(() => {
-        const isOver = !!draggedTaskId && dragOverTaskId === task.id && draggedTaskId !== task.id;
-        const subtaskThreshold = (task.level || 0) * 22 + 80;
-        const isSubtaskIntent = isOver && dragOverRelativeX > subtaskThreshold;
-        return {
-          borderBottom: '1px solid var(--outline)',
-          borderTop: isOver && !isSubtaskIntent ? '2px solid var(--primary)' : 'none',
-          outline: isSubtaskIntent ? '2px solid #22c55e' : 'none',
-          outlineOffset: '-2px',
-          background: isSubtaskIntent ? 'rgba(34,197,94,0.07)' : 'var(--surface)',
-          height: '32px',
-          opacity: draggedTaskId === task.id ? 0.4 : 1,
-          position: statusDropdownSource !== null ? 'relative' : undefined,
-          zIndex: statusDropdownSource !== null ? 999 : undefined,
-          transition: 'all 0.15s ease'
-        };
-      })()}
+      style={{
+        borderBottom: '1px solid var(--outline)',
+        background: 'var(--surface)',
+        height: '32px',
+        opacity: draggedTaskId === task.id ? 0.4 : 1,
+        position: statusDropdownSource !== null ? 'relative' : undefined,
+        zIndex: statusDropdownSource !== null ? 999 : undefined,
+        transition: 'opacity 0.15s ease'
+      }}
       onMouseOver={(e) => {
         e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
       }}
@@ -2640,22 +2629,28 @@ const CustomFieldCell: React.FC<CustomFieldCellProps> = ({ taskId, field, isRead
         }}
       >
         {/* Camada visual de texto perfeitamente alinhada e com reticências (...) */}
-        <div 
-          style={{
-            width: '100%',
-            padding: '0px',
-            fontSize: '12px',
-            color: 'var(--text-on-surface)',
-            textAlign: 'left',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            boxSizing: 'border-box'
-          }}
-        >
-          {value || '-'}
-        </div>
+        {field.key === 'cliente_ecosystem' && value && field.bgColor ? (
+          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '1px 8px', borderRadius: 4, background: field.bgColor, fontSize: '11px', fontWeight: 600, color: '#fff', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+            {value}
+          </div>
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              padding: '0px',
+              fontSize: '12px',
+              color: 'var(--text-on-surface)',
+              textAlign: 'left',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              boxSizing: 'border-box'
+            }}
+          >
+            {value || '-'}
+          </div>
+        )}
 
         {/* Select invisível posicionado de forma absoluta por cima */}
         <select
