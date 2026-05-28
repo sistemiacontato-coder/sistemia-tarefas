@@ -2356,21 +2356,26 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             {/* Menu Items */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingTop: '4px' }}>
 
-              {/* Ver tarefa pai — só aparece quando é subtarefa */}
+              {/* Promover hierarquia — só aparece quando é subtarefa */}
               {task.parent_id && (() => {
                 const parentTask = allTasks.find(t => t.id === task.parent_id);
                 if (!parentTask) return null;
                 return (
                   <div
-                    onClick={() => { onEditTask(parentTask); setShowThreeDotsMenu(false); }}
+                    onClick={async () => {
+                      if (onUpdateTaskField) {
+                        await onUpdateTaskField(task.id, { parent_id: parentTask.parent_id });
+                      }
+                      setShowThreeDotsMenu(false);
+                    }}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
                     onMouseOver={(e) => e.currentTarget.style.background = '#2d2e30'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#a1a1aa' }}>arrow_upward</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#a1a1aa' }}>vertical_align_top</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                      <span style={{ fontWeight: 600 }}>Ver tarefa pai</span>
-                      <span style={{ fontSize: '10px', color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '130px' }}>{parentTask.description}</span>
+                      <span style={{ fontWeight: 600 }}>Tornar tarefa</span>
+                      <span style={{ fontSize: '10px', color: '#71717a' }}>Sobe um nível na hierarquia</span>
                     </div>
                   </div>
                 );
