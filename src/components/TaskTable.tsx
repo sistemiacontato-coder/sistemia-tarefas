@@ -403,8 +403,15 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     if (savedFields) {
       try {
         const parsed = JSON.parse(savedFields) as CustomField[];
+        // Mescla dados salvos do cliente_ecosystem (optionColors, bgColor, label) com o padrão
+        const savedClientField = parsed.find(f => f.key === 'cliente_ecosystem');
+        const mergedSystem = SYSTEM_DEFAULT_FIELDS.map(def =>
+          savedClientField && def.key === 'cliente_ecosystem'
+            ? { ...def, ...savedClientField, isSystemDefault: true, isPinned: true }
+            : def
+        );
         const filtered = parsed.filter(f => f.key !== 'cliente_ecosystem');
-        return [...SYSTEM_DEFAULT_FIELDS, ...filtered];
+        return [...mergedSystem, ...filtered];
       } catch (e) {
         return SYSTEM_DEFAULT_FIELDS;
       }
