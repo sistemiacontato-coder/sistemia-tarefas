@@ -583,7 +583,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   };
 
   const [showHeaderPlusDropdown, setShowHeaderPlusDropdown] = useState(false);
-  const [showClientColorsExpanded, setShowClientColorsExpanded] = useState(false);
+  const [showClientColorPanel, setShowClientColorPanel] = useState(false);
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -2025,7 +2025,14 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               }}>
                 {/* CABEÇALHO DO DROPDOWN */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--outline)', paddingBottom: '6px' }}>
-                  {showManageFieldsPanel ? (
+                  {showClientColorPanel ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button onClick={() => setShowClientColorPanel(false)} title="Voltar" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', padding: '2px', borderRadius: '4px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
+                      </button>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-on-surface)' }}>Cores dos Clientes</span>
+                    </div>
+                  ) : showManageFieldsPanel ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <button
                         onClick={() => { setShowManageFieldsPanel(false); setRenamingFieldKey(null); }}
@@ -2155,7 +2162,34 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   )}
                 </div>
 
-                {showManageFieldsPanel ? (
+                {showClientColorPanel ? (
+                  /* PAINEL DE CORES POR CLIENTE */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                      Clique na cor para alterar
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' }}>
+                      {[...new Set(tasks.map(t => t.client_name).filter(Boolean))].map(client => {
+                        const clientField = customFields.find(f => f.key === 'cliente_ecosystem');
+                        const currentColor = clientField?.optionColors?.[client] || '#6366f1';
+                        return (
+                          <label key={client} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 8px', background: 'var(--surface-low)', borderRadius: 'var(--radius-sm)', userSelect: 'none' }}>
+                            <div style={{ width: 20, height: 20, borderRadius: 5, background: currentColor, border: '2px solid var(--outline)', flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+                            <span style={{ fontSize: '12px', color: 'var(--text-on-surface)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client}</span>
+                            <input type="color" value={currentColor} onChange={(e) => {
+                              const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: e.target.value } } : f);
+                              setCustomFields(updated);
+                              localStorage.setItem('custom_fields_list', JSON.stringify(updated));
+                            }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
+                          </label>
+                        );
+                      })}
+                      {tasks.filter(t => t.client_name).length === 0 && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '8px', textAlign: 'center' }}>Nenhum cliente nas tarefas</div>
+                      )}
+                    </div>
+                  </div>
+                ) : showManageFieldsPanel ? (
                   /* PAINEL DE GERENCIAMENTO E RENOMEAÇÃO DE CAMPOS */
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
@@ -2228,7 +2262,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   {field.key === 'cliente_ecosystem' && (
-                                    <button onClick={() => setShowClientColorsExpanded(v => !v)} title="Cores por cliente" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: showClientColorsExpanded ? 'var(--primary)' : 'var(--text-muted)', padding: '2px' }}>
+                                    <button onClick={() => setShowClientColorPanel(true)} title="Cores por cliente" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', padding: '2px' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
                                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>palette</span>
                                     </button>
                                   )}
@@ -2241,24 +2275,6 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                 </div>
                               </>
                             )}
-                            {/* Sub-painel de cores por cliente */}
-                            {field.key === 'cliente_ecosystem' && showClientColorsExpanded && (() => {
-                              const uniqueClients = [...new Set(tasks.map(t => t.client_name).filter(Boolean))];
-                              if (!uniqueClients.length) return <div style={{ padding: '4px 6px', fontSize: '10px', color: 'var(--text-muted)' }}>Nenhum cliente nas tarefas</div>;
-                              return (
-                                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                  {uniqueClients.map(client => (
-                                    <div key={client} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', background: 'var(--surface)', borderRadius: 4 }}>
-                                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flex: 1, fontSize: '11px', color: 'var(--text-on-surface)' }}>
-                                        <div style={{ width: 12, height: 12, borderRadius: 3, background: field.optionColors?.[client] || '#6366f1', border: '1px solid var(--outline)', flexShrink: 0 }} />
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client}</span>
-                                        <input type="color" value={field.optionColors?.[client] || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: e.target.value } } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
-                                      </label>
-                                    </div>
-                                  ))}
-                                </div>
-                              );
-                            })()}
                           </div>
                         );
                       })}
@@ -2537,7 +2553,14 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   }}>
                     {/* CABEÇALHO DO DROPDOWN */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--outline)', paddingBottom: '6px' }}>
-                      {showManageFieldsPanel ? (
+                      {showClientColorPanel ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button onClick={() => setShowClientColorPanel(false)} title="Voltar" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', padding: '2px', borderRadius: '4px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
+                          </button>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-on-surface)' }}>Cores dos Clientes</span>
+                        </div>
+                      ) : showManageFieldsPanel ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <button
                             onClick={() => { setShowManageFieldsPanel(false); setRenamingFieldKey(null); }}
@@ -2646,7 +2669,31 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                     </div>
 
                     {/* CONTEÚDO DO DROPDOWN REAPROVEITADO DO CLICKUP-STYLE */}
-                    {showManageFieldsPanel ? (
+                    {showClientColorPanel ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Clique na cor para alterar</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' }}>
+                          {[...new Set(tasks.map(t => t.client_name).filter(Boolean))].map(client => {
+                            const clientField = customFields.find(f => f.key === 'cliente_ecosystem');
+                            const currentColor = clientField?.optionColors?.[client] || '#6366f1';
+                            return (
+                              <label key={client} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 8px', background: 'var(--surface-low)', borderRadius: 'var(--radius-sm)', userSelect: 'none' }}>
+                                <div style={{ width: 20, height: 20, borderRadius: 5, background: currentColor, border: '2px solid var(--outline)', flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+                                <span style={{ fontSize: '12px', color: 'var(--text-on-surface)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client}</span>
+                                <input type="color" value={currentColor} onChange={(e) => {
+                                  const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: e.target.value } } : f);
+                                  setCustomFields(updated);
+                                  localStorage.setItem('custom_fields_list', JSON.stringify(updated));
+                                }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute', pointerEvents: 'none' }} />
+                              </label>
+                            );
+                          })}
+                          {tasks.filter(t => t.client_name).length === 0 && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', padding: '8px', textAlign: 'center' }}>Nenhum cliente nas tarefas</div>
+                          )}
+                        </div>
+                      </div>
+                    ) : showManageFieldsPanel ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
                         <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '4px 6px' }}>Colunas Padrão</div>
                         {columnsList.map(col => {
@@ -2703,7 +2750,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                 ) : (
                                   <>
                                     {field.key === 'cliente_ecosystem' && (
-                                      <button onClick={() => setShowClientColorsExpanded(v => !v)} title="Cores por cliente" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: showClientColorsExpanded ? 'var(--primary)' : 'var(--text-muted)', padding: '2px' }}>
+                                      <button onClick={() => setShowClientColorPanel(true)} title="Cores por cliente" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', padding: '2px' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
                                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>palette</span>
                                       </button>
                                     )}
@@ -2716,24 +2763,6 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                                   </>
                                 )}
                               </div>
-                              {/* Sub-painel de cores por cliente */}
-                              {field.key === 'cliente_ecosystem' && showClientColorsExpanded && (() => {
-                                const uniqueClients = [...new Set(tasks.map(t => t.client_name).filter(Boolean))];
-                                if (!uniqueClients.length) return <div style={{ padding: '4px 6px', fontSize: '10px', color: 'var(--text-muted)' }}>Nenhum cliente</div>;
-                                return (
-                                  <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 4 }}>
-                                    {uniqueClients.map(client => (
-                                      <div key={client} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', background: 'var(--surface)', borderRadius: 4 }}>
-                                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, flex: 1, fontSize: '11px', color: 'var(--text-on-surface)' }}>
-                                          <div style={{ width: 12, height: 12, borderRadius: 3, background: field.optionColors?.[client] || '#6366f1', border: '1px solid var(--outline)', flexShrink: 0 }} />
-                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client}</span>
-                                          <input type="color" value={field.optionColors?.[client] || '#6366f1'} onChange={(e) => { const updated = customFields.map(f => f.key === 'cliente_ecosystem' ? { ...f, optionColors: { ...(f.optionColors || {}), [client]: e.target.value } } : f); setCustomFields(updated); localStorage.setItem('custom_fields_list', JSON.stringify(updated)); }} style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }} />
-                                        </label>
-                                      </div>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
                             </div>
                           );
                         })}
